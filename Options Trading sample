@@ -1,0 +1,54 @@
+import pandas as pd
+import yfinance as yf
+import numpy as np
+import scipy.stats as si
+
+# Set the parameters
+symbol = 'AAPL'
+option_type = 'call'
+strike_price = 150
+expiration_date = '2023-06-16'
+risk_free_rate = 0.01
+std_dev = 2
+
+# Get the current price of the underlying asset
+data = yf.download(symbol)
+current_price = data['Adj Close'][-1]
+
+# Calculate the time to expiration in years
+expiration = pd.to_datetime(expiration_date)
+today = pd.Timestamp.today()
+days_to_expiration = (expiration - today).days
+time_to_expiration = days_to_expiration / 365
+
+# Calculate the parameters for the Black-Scholes model
+d1 = (np.log(current_price / strike_price) + (risk_free_rate + 0.5 * std_dev**2) * time_to_expiration) / (std_dev * np.sqrt(time_to_expiration))
+d2 = d1 - std_dev * np.sqrt(time_to_expiration)
+call_price = current_price * si.norm.cdf(d1) - strike_price * np.exp(-risk_free_rate * time_to_expiration) * si.norm.cdf(d2)
+put_price = strike_price * np.exp(-risk_free_rate * time_to_expiration) * si.norm.cdf(-d2) - current_price * si.norm.cdf(-d1)
+
+# Determine the trading signal
+if option_type == 'call':
+    if call_price < current_price * 0.95:
+        signal = 'Buy'
+    elif call_price > current_price * 1.05:
+        signal = 'Sell'
+    else:
+        signal = 'Hold'
+else:
+    if put_price < strike_price * 0.95:
+        signal = 'Buy'
+    elif put_price > strike_price * 1.05:
+        signal = 'Sell'
+    else:
+        signal = 'Hold'
+
+# Place the trade
+if signal == 'Buy':
+    # Code to place a buy order goes here
+    print('Placing a buy order...')
+elif signal == 'Sell':
+    # Code to place a sell order goes here
+    print('Placing a sell order...')
+else:
+    print('Holding position...')
